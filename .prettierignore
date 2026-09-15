@@ -1,0 +1,13 @@
+# Arquivos que nao precisam ser formatados pelo Prettier.
+node_modules/
+.pnpm-store/
+dist/
+build/
+coverage/
+.vercel/
+.supabase/
+.manus-logs/
+*.min.js
+*.map
+*.lock
+*.sql
