@@ -3,6 +3,8 @@ import { FLOW_PLANS } from "../shared/products";
 import { activateUserFromCheckout, getUserByEmail } from "./db";
 import { decryptCustomerPassword, encryptCustomerPassword } from "./stripe";
 
+const hasDatabase = Boolean(process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("replace-with-database-password"));
+
 describe("FlowPromos Business Logic", () => {
   it("deve carregar os planos com preços e regras de limite corretos", () => {
     expect(FLOW_PLANS.length).toBe(3);
@@ -13,13 +15,13 @@ describe("FlowPromos Business Logic", () => {
     expect(proPlan?.dailyLimitOffers).toBe(150);
   });
 
-  it("deve ativar o usuário pós-compra do Stripe e gerar senha temporária", async () => {
+  it.skipIf(!hasDatabase)("deve ativar o usuário pós-compra do Stripe e gerar senha temporária", async () => {
     const testEmail = `test_affiliate_${Date.now()}@flowpromos.com.br`;
     const activation = await activateUserFromCheckout({
       email: testEmail,
       name: "Afiliado Teste",
       planId: "pro_annual",
-      stripeSessionId: "sess_test_12345",
+      stripeSessionId: `sess_test_${Date.now()}`,
     });
 
     expect(activation.email).toBe(testEmail);

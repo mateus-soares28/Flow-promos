@@ -16,6 +16,7 @@ function buildAdminUser(username: string): User {
   return {
     id: 0,
     openId: "flowpromos-admin-session",
+    authUserId: null,
     name: username,
     email: null,
     loginMethod: "admin_credentials",

@@ -1,7 +1,8 @@
 import { and, desc, eq, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/postgres-js";
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
+import postgres from "postgres";
 import QRCode from "qrcode";
 import {
   affiliateIntegrations,
@@ -21,13 +22,16 @@ import {
 } from "../drizzle/schema";
 import { FLOW_PLANS } from "../shared/products";
 import { ENV } from "./_core/env";
+import { createSupabaseUser } from "./supabase";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _sql: ReturnType<typeof postgres> | null = null;
 
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
+  if (!_db && ENV.databaseUrl && !ENV.databaseUrl.includes("replace-with-database-password")) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      _sql = postgres(ENV.databaseUrl, { max: 5, idle_timeout: 20 });
+      _db = drizzle(_sql);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -74,7 +78,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     values.lastSignedIn = new Date();
   }
 
-  await db.insert(users).values(values).onDuplicateKeyUpdate({
+  await db.insert(users).values(values).onConflictDoUpdate({
+    target: users.openId,
     set: updateSet,
   });
 }
@@ -156,9 +161,11 @@ export async function activateUserFromCheckout(params: {
       })
       .where(eq(users.id, existing.id));
   } else {
+    const authUserId = await createSupabaseUser({ email: cleanEmail, password: generatedPassword, name: params.name });
     const openId = `fp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const [insertResult] = await db.insert(users).values({
       openId,
+      authUserId,
       name: params.name || cleanEmail.split("@")[0],
       email: cleanEmail,
       passwordHash,
@@ -167,8 +174,8 @@ export async function activateUserFromCheckout(params: {
       loginMethod: "credentials",
       currentPlanId: params.planId,
       planExpiresAt: expiresAt,
-    });
-    userId = (insertResult as any).insertId;
+    }).returning({ id: users.id });
+    userId = insertResult.id;
   }
 
   const selectedPlan = FLOW_PLANS.find((p) => p.id === params.planId) || FLOW_PLANS[1];

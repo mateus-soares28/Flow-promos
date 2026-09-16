@@ -165,7 +165,9 @@ async function startServer() {
     })
   );
   // development mode uses Vite, production mode uses static files
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.VERCEL) {
+    // A Vercel function serves the API; the frontend is served by Vercel's static output.
+  } else if (process.env.NODE_ENV !== "production") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
@@ -178,9 +180,17 @@ async function startServer() {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
-  server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
-  });
+  if (!process.env.VERCEL) {
+    server.listen(port, () => {
+      console.log(`Server running on http://localhost:${port}/`);
+    });
+  }
+
+  return app;
 }
 
-startServer().catch(console.error);
+export const appPromise = startServer();
+
+if (!process.env.VERCEL) {
+  appPromise.catch(console.error);
+}

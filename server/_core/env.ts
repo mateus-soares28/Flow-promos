@@ -13,4 +13,7 @@ export const ENV = {
   evolutionWebhookSecret: process.env.EVOLUTION_WEBHOOK_SECRET ?? "",
   adminUsername: process.env.FLOWPROMOS_ADMIN_USERNAME ?? "",
   adminPassword: process.env.FLOWPROMOS_ADMIN_PASSWORD ?? "",
+  supabaseUrl: process.env.SUPABASE_URL ?? "",
+  supabaseAnonKey: process.env.SUPABASE_ANON_KEY ?? "",
+  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
 };

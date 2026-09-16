@@ -39,7 +39,9 @@ import { createHeartbeatJob, deleteHeartbeatJob } from "./_core/heartbeat";
 import { sendWhatsAppText } from "./integrations/whatsapp";
 import { convertAffiliateLink } from "./integrations/marketplaces";
 import { invokeLLM } from "./_core/llm";
-import { ADMIN_SESSION_MAX_AGE_MS, createAdminSessionToken, validateAdminCredentials } from "./adminAuth";
+import { ADMIN_SESSION_MAX_AGE_MS, createAdminSessionToken } from "./adminAuth";
+import { authenticateSupabaseAdmin } from "./supabase";
+import { authenticateSupabaseUser } from "./supabase";
 
 async function logWhatsAppEvent(db: any, userId: number, action: "qr_requested" | "status_check" | "connected" | "disconnected" | "test_message" | "error", status: "success" | "failure", details?: string, errorMessage?: string, sessionId?: number) {
   await db.insert(whatsappConnectionLogs).values({ userId, sessionId: sessionId ?? null, action, status, details: details ?? null, errorMessage: errorMessage ?? null });
@@ -66,8 +68,9 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        const user = await getUserByEmail(input.email);
-        if (!user || !user.passwordHash || user.status !== "active" || !(await bcrypt.compare(input.password, user.passwordHash))) {
+        const supabaseUser = await authenticateSupabaseUser(input.email, input.password);
+        const user = supabaseUser ? await getUserByEmail(input.email) : undefined;
+        if (!supabaseUser || !user || user.status !== "active") {
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "E-mail ou senha inválidos.",
@@ -764,10 +767,11 @@ export const appRouter = router({
     login: publicProcedure
       .input(z.object({ username: z.string().min(1), password: z.string().min(1) }))
       .mutation(async ({ input, ctx }) => {
-        if (!validateAdminCredentials(input.username, input.password)) {
+        const adminProfile = await authenticateSupabaseAdmin(input.username, input.password);
+        if (!adminProfile) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário ou senha administrativos inválidos." });
         }
-        const token = await createAdminSessionToken(input.username);
+        const token = await createAdminSessionToken(adminProfile.email);
         ctx.res.cookie(ADMIN_COOKIE_NAME, token, {
           ...getSessionCookieOptions(ctx.req),
           maxAge: ADMIN_SESSION_MAX_AGE_MS,

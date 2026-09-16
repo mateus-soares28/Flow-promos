@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Redirect } from "wouter";
 import { toast } from "sonner";
-import { AlertCircle, CheckCircle2, DollarSign, KeyRound, Loader2, LogIn, LogOut, ShieldCheck, Tag, Users } from "lucide-react";
+import { AlertCircle, CheckCircle2, DollarSign, Eye, EyeOff, KeyRound, Loader2, LogIn, LogOut, ShieldCheck, Tag, Users } from "lucide-react";
 import { useAuth } from "../_core/hooks/useAuth";
 import { trpc } from "../lib/trpc";
 import FlowLayout from "../components/FlowLayout";
@@ -10,6 +10,7 @@ import ThemeToggle from "../components/ThemeToggle";
 function AdminLogin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const loginMutation = trpc.admin.login.useMutation();
   const utils = trpc.useUtils();
 
@@ -36,7 +37,7 @@ function AdminLogin() {
         <p className="mb-6 text-sm leading-6 text-slate-500 dark:text-slate-400">Área exclusiva do proprietário da plataforma. Use as credenciais administrativas configuradas no servidor.</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block text-sm font-medium">Usuário<input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" required className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:focus:border-white dark:focus:ring-slate-700" /></label>
-          <label className="block text-sm font-medium">Senha<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:focus:border-white dark:focus:ring-slate-700" /></label>
+          <label className="block text-sm font-medium">Senha<div className="relative mt-2"><input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 pr-11 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:focus:border-white dark:focus:ring-slate-700" /><button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"} title={showPassword ? "Ocultar senha" : "Mostrar senha"} className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></label>
           <button type="submit" disabled={loginMutation.isPending} className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">
             {loginMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />} Entrar no painel
           </button>

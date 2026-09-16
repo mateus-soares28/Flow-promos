@@ -4,6 +4,8 @@ import type { TrpcContext } from "./_core/context";
 import { validateAdminCredentials } from "./adminAuth";
 import { activateUserFromCheckout } from "./db";
 
+const hasDatabase = Boolean(process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("replace-with-database-password"));
+
 function createPublicContext(): { ctx: TrpcContext; cookies: Array<{ name: string; value: string }> } {
   const cookies: Array<{ name: string; value: string }> = [];
   return {
@@ -44,7 +46,7 @@ describe("admin credential authentication", () => {
     expect(cookies[0]?.value).toBeTruthy();
   });
 
-  it("authenticates a paid customer and issues the regular session cookie", async () => {
+  it.skipIf(!hasDatabase)("authenticates a paid customer and issues the regular session cookie", async () => {
     const email = `credential_login_${Date.now()}@flowpromos.com.br`;
     await activateUserFromCheckout({
       email,
